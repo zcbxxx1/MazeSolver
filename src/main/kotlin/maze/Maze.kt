@@ -1,7 +1,9 @@
 package io.github.lingerjab.maze
 
 data class Maze(
+    // 迷宫网格，按 [行(Y)][列(X)] 存储
     val cellArray: Array<Array<CellType>>,
+    // 兼容旧字段：width 实际对应行数（Y），height 对应列数（X）
     val width: Int = cellArray.size,
     val height: Int = cellArray[0].size,
     var start: Pair<Int, Int>? = null,
