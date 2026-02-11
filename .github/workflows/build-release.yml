@@ -1,0 +1,105 @@
+name: Build and Release
+
+on:
+  push:
+    branches: ["main"]
+    tags: ["v*"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-jar:
+    name: Build JAR (Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build JAR
+        run: |
+          chmod +x ./gradlew
+          ./gradlew clean jar
+
+      - name: Keep release files only (JAR)
+        run: |
+          mkdir -p release-assets/jar
+          cp build/libs/*.jar release-assets/jar/
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MazeSolver-jar
+          path: release-assets/jar/*.jar
+          if-no-files-found: error
+
+  build-windows-exe:
+    name: Build EXE (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build EXE package
+        shell: pwsh
+        run: |
+          ./gradlew.bat clean packageReleaseExe
+
+      - name: Keep release files only (EXE)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path release-assets/exe -Force | Out-Null
+          Copy-Item build/compose/binaries/main-release/exe/*.exe release-assets/exe/
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MazeSolver-exe
+          path: release-assets/exe/*.exe
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: [build-jar, build-windows-exe]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Show downloaded files
+        run: find release-assets -type f
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-assets/**/*.jar
+            release-assets/**/*.exe
+          generate_release_notes: true

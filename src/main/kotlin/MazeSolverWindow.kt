@@ -434,6 +434,17 @@ fun App() {
                         verticalArrangement = Arrangement.Top,
                         horizontalAlignment = Alignment.Start
                     ) {
+                        val rowCount = maze.cellArray.size
+                        val colCount = maze.cellArray.firstOrNull()?.size ?: 0
+
+                        // 迷宫维度信息：单独强调行列与 X/Y 的映射关系
+                        Text(
+                            text = "迷宫尺寸：列(X) = $colCount，行(Y) = $rowCount",
+                            fontSize = 13.sp,
+                            color = Color(0xFF4A4A4A)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
                         val verticalScrollMazeState = rememberScrollState()
                         Box(
                             modifier = Modifier
@@ -1145,9 +1156,35 @@ fun MazeGrid(
     trigger
 
     val cellArray = maze.cellArray
+    val colIndices = cellArray.firstOrNull()?.indices ?: IntRange.EMPTY
+
+    // 坐标轴标签单元格：用于在网格上方和左侧展示 X / Y 轴索引
+    @Composable
+    fun AxisLabelCell(text: String, emphasize: Boolean = false) {
+        Box(
+            modifier = Modifier
+                .size(cellSize.dp)
+                .background(if (emphasize) Color(0xFFE8EEF9) else Color(0xFFF3F3F3))
+                .border(1.dp, Color.Gray),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = text, fontSize = 9.sp, color = Color(0xFF444444))
+        }
+    }
+
     Column(modifier = modifier.fillMaxWidth()) {
+        // 顶部 X 轴坐标（列索引）
+        Row {
+            AxisLabelCell(text = "Y\\X", emphasize = true)
+            for (col in colIndices) {
+                AxisLabelCell(text = col.toString())
+            }
+        }
+
+        // 左侧 Y 轴坐标（行索引）+ 迷宫网格
         for (row in cellArray.indices) {
             Row {
+                AxisLabelCell(text = row.toString())
                 for (col in cellArray[row].indices) {
                     val cellType = cellArray[row][col]
                     val color = when (cellType) {
@@ -1184,6 +1221,14 @@ fun MazeGrid(
                 }
             }
         }
+
+        // 网格坐标说明，避免用户混淆“行列”和“X/Y”
+        Text(
+            text = "坐标说明：X 为列（横向），Y 为行（纵向），单元格索引格式为 (Y, X)",
+            modifier = Modifier.padding(top = 8.dp),
+            fontSize = 12.sp,
+            color = Color(0xFF666666)
+        )
     }
 }
 
@@ -1234,4 +1279,3 @@ fun MazeTextField(
         }
     }
 }
-
